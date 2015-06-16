@@ -10,12 +10,20 @@ import sys
 
 from tornado.ioloop import IOLoop
 
-from ipykernel.kernelbase import Kernel
+try:
+    from ipykernel.kernelbase import Kernel
+except ImportError:
+    from IPython.kernel.zmq.kernelbase import Kernel
+
 from pexpect import replwrap, EOF
 
 __version__ = '0.0.1'
 
-from traitlets import Unicode
+try:
+    from traitlets import Unicode
+except ImportError:
+    from IPython.utils.traitlets import Unicode
+
 
 class ClingError(Exception):
     def __init__(self, buf):
@@ -23,14 +31,14 @@ class ClingError(Exception):
 
 class ClingInterpreter(replwrap.REPLWrapper):
     
-    prompt_pat = re.compile(r'\[cling\][\$\!\?]\s+')
+    prompt_pat = re.compile(r'root \[\d\]\s+')
     
     def __init__(self, cmd, **kw):
         self.buffer = []
         self.output = ''
         
         super(ClingInterpreter, self).__init__(
-            cmd, '[cling]', None, **kw)
+            cmd, 'root [0] ', None, **kw)
     
     def run_command(self, command, timeout=-1):
         self.buffer = []
@@ -89,10 +97,10 @@ class ClingKernel(Kernel):
                      'file_extension': '.c++'}
     
     cling = Unicode(config=True,
-        help="Path to cling if not on your PATH."
+        help="Path to root if not on your PATH."
     )
     def _cling_default(self):
-        return os.environ.get('CLING_EXE') or 'cling'
+        return os.environ.get('CLING_EXE') or 'root'
     
     def __init__(self, **kwargs):
         
@@ -107,11 +115,14 @@ class ClingKernel(Kernel):
         sig = signal.signal(signal.SIGINT, signal.SIG_DFL)
         try:
             self.interpreter = ClingInterpreter(
-                '%s --nologo --version' % quote(self.cling)
+                str('%s -l' % quote(self.cling))
             )
         finally:
             signal.signal(signal.SIGINT, sig)
-        self.language_version = self.interpreter.child.before.strip()
+
+        import ROOT
+        self.language_version = ROOT.gROOT.GetVersion()
+        del ROOT
 
     def do_execute(self, code, silent, store_history=True,
                    user_expressions=None, allow_stdin=False):
@@ -187,7 +198,10 @@ class ClingKernel(Kernel):
 
 def main():
     """launch a cling kernel"""
-    from ipykernel.kernelapp import IPKernelApp
+    try:
+        from ipykernel.kernelapp import IPKernelApp
+    except ImportError:
+        from IPython.kernel.zmq.kernelapp import IPKernelApp
     IPKernelApp.launch_instance(kernel_class=ClingKernel)
 
 
