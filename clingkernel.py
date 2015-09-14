@@ -120,9 +120,13 @@ class ClingKernel(Kernel):
         finally:
             signal.signal(signal.SIGINT, sig)
 
-        import ROOT
-        self.language_version = ROOT.gROOT.GetVersion()
-        del ROOT
+        try:
+            import ROOT
+            self.language_version = ROOT.gROOT.GetVersion()
+            del ROOT
+
+        except ImportError:
+            self.language_version = "XXX"
 
     def do_execute(self, code, silent, store_history=True,
                    user_expressions=None, allow_stdin=False):
