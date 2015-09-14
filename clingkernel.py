@@ -115,7 +115,7 @@ class ClingKernel(Kernel):
         sig = signal.signal(signal.SIGINT, signal.SIG_DFL)
         try:
             self.interpreter = ClingInterpreter(
-                str('%s -l' % quote(self.cling))
+                str('%s -l -b' % quote(self.cling))
             )
         finally:
             signal.signal(signal.SIGINT, sig)
